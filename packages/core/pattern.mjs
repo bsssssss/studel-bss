@@ -2353,6 +2353,91 @@ Pattern.prototype.tag = function (tag) {
   return this.withContext((ctx) => ({ ...ctx, tags: (ctx.tags || []).concat([tag]) }));
 };
 
+
+
+
+
+/**
+ * Filters haps using the given function
+ * @name filter
+ * @param {Function} test function to test Hap
+ * @example
+ * s("hh!7 oh").filter(hap => hap.value.s==='hh')
+ */
+export const filter = register('filter', (test, pat) => pat.withHaps((haps) => haps.filter(test)));
+
+/**
+ * Filters haps by their begin time
+ * @name filterWhen
+ * @noAutocomplete
+ * @param {Function} test function to test Hap.whole.begin
+ */
+export const filterWhen = register('filterWhen', (test, pat) => pat.filter((h) => test(h.whole.begin)));
+
+/**
+ * Use within to apply a function to only a part of a pattern.
+ * @name within
+ * @param {number} start start within cycle (0 - 1)
+ * @param {number} end end within cycle (0 - 1). Must be > start
+ * @param {Function} func function to be applied to the sub-pattern
+ */
+export const within = register('within', (a, b, fn, pat) =>
+  stack(
+    fn(pat.filterWhen((t) => t.cyclePos() >= a && t.cyclePos() <= b)),
+    pat.filterWhen(   (t) => t.cyclePos() <  a || t.cyclePos() >  b),
+  ),
+);
+
+/**
+ * Filters a pattern with logical operators
+ * 
+ * @name filterLogic
+ * @param {string} operator Operator to compare pattern with (lt, lte, gt, gte, eq, ne)
+ * @param {number} value Value to compare to
+ */
+export const filterLogic = register('filterLogic', (op, val, pat) => {
+
+  const operators = {
+    'lt':  (a, b) => a <  b,
+    'gt':  (a, b) => a >  b,
+    'lte': (a, b) => a <= b,
+    'gte': (a, b) => a >= b,
+    'eq':  (a, b) => a == b,
+    'ne':  (a, b) => a != b
+  };
+  const operator = operators[op];
+
+  return pat.filter(h => operator(h.value, val));
+});
+
+
+/**
+ * Apply a function to part of a pattern 
+ * 
+ * @name filterLogicWith
+ * @param {string}   operator Operator to compare pattern with (lt, lte, gt, gte, eq, ne)
+ * @param {number}   value Value to compare to
+ * @param {Function} true function to be applied if true
+ * @param {Function} false function to be applied if false
+ */
+export const filterLogicWith = register('filterLogicWith', (op, val, fnTrue, fnFalse, pat) => {
+
+  const operators = {
+    'lt':  (a, b) => a <  b,
+    'gt':  (a, b) => a >  b,
+    'lte': (a, b) => a <= b,
+    'gte': (a, b) => a >= b,
+    'eq':  (a, b) => a == b,
+    'ne':  (a, b) => a != b
+  };
+  const operator = operators[op];
+
+  const ifTrue  = fnTrue (pat.filter(h =>  operator(h.value, val)));
+  const ifFalse = fnFalse(pat.filter(h => !operator(h.value, val)));
+
+  return stack(ifTrue, ifFalse);
+});
+
 //////////////////////////////////////////////////////////////////////
 // Tactus-related functions, i.e. ones that do stepwise
 // transformations

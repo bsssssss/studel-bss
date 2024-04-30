@@ -64,7 +64,7 @@ function drawSpiral(options) {
     steady = 1,
     activeColor = getTheme().foreground,
     inactiveColor = getTheme().gutterForeground,
-    colorizeInactive = 0,
+    colorizeInactive = 1,
     fade = true,
     // logSpiral = true,
     ctx,
